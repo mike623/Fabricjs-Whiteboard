@@ -1,3 +1,3 @@
-import Whiteboard from './components/Whiteboard';
+import Whiteboard from './components/WhiteBoard';
 
 export { Whiteboard };
