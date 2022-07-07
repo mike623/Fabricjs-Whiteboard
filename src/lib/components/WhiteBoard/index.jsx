@@ -360,9 +360,6 @@ function clearCanvas(canvas) {
     }
   });
 }
-function canvasToJson(canvas) {
-  alert(JSON.stringify(canvas.toJSON()));
-}
 
 function draw(canvas) {
   if (options.currentMode !== modes.PENCIL) {
@@ -381,19 +378,7 @@ function handleResize(callback) {
   return resize_ob;
 }
 
-function resizeCanvas(canvas, whiteboard) {
-  return () => {
-    const ratio = canvas.getWidth() / canvas.getHeight();
-    const whiteboardWidth = whiteboard.clientWidth;
-
-    const scale = whiteboardWidth / canvas.getWidth();
-    const zoom = canvas.getZoom() * scale;
-    canvas.setDimensions({ width: whiteboardWidth, height: whiteboardWidth / ratio });
-    canvas.setViewportTransform([zoom, 0, 0, zoom, 0, 0]);
-  };
-}
-
-const Whiteboard = ({ aspectRatio = 4 / 3 }) => {
+const Whiteboard = ({ aspectRatio = 4 / 3, renderVideo, onSaveJson, json }) => {
   const [canvas, setCanvas] = useState(null);
   const [brushWidth, setBrushWidth] = useState(5);
   const [isFill, setIsFill] = useState(false);
@@ -407,6 +392,37 @@ const Whiteboard = ({ aspectRatio = 4 / 3 }) => {
   const whiteboardRef = useRef(null);
   const uploadImageRef = useRef(null);
   const uploadPdfRef = useRef(null);
+  const [dem, setDem] = useState();
+
+  function canvasToJson(canvas) {
+    // alert(JSON.stringify(canvas.toJSON()));
+    onSaveJson?.(canvas.toJSON());
+  }
+
+  function resizeCanvas(canvas, whiteboard) {
+    return () => {
+      const ratio = canvas.getWidth() / canvas.getHeight();
+      const whiteboardWidth = whiteboard.clientWidth;
+
+      const scale = whiteboardWidth / canvas.getWidth();
+      const zoom = canvas.getZoom() * scale;
+      const de = { width: whiteboardWidth, height: whiteboardWidth / ratio };
+      setDem(de);
+      canvas.setDimensions(de);
+      canvas.setViewportTransform([zoom, 0, 0, zoom, 0, 0]);
+    };
+  }
+
+  useEffect(() => {
+    console.log({ json, canvas });
+    if (!canvas) return;
+    if (json === undefined) return canvas.clear();
+    canvas.loadFromJSON(json, canvas.renderAll.bind(canvas), function (o, object) {
+      // `o` = json object
+      // `object` = fabric.Object instance
+      // ... do some stuff ...
+    });
+  }, [json, canvas]);
 
   useEffect(() => {
     if (!canvas && canvasRef.current) {
@@ -415,6 +431,7 @@ const Whiteboard = ({ aspectRatio = 4 / 3 }) => {
         whiteboardRef.current.clientWidth / aspectRatio,
       );
       setCanvas(() => canvas);
+      setDem({ width: canvas.getWidth(), height: canvas.getHeight() });
 
       handleResize(resizeCanvas(canvas, whiteboardRef.current)).observe(whiteboardRef.current);
     }
@@ -540,7 +557,21 @@ const Whiteboard = ({ aspectRatio = 4 / 3 }) => {
         <button onClick={() => canvasToJson(canvas)}>To Json</button>
         <button onClick={onSaveCanvasAsImage}>Save as image</button>
       </div>
-      <canvas ref={canvasRef} id="canvas" />
+      <div style={{ position: 'relative' }}>
+        <div
+          style={{
+            position: 'absolute',
+            top: '0',
+            left: '0',
+            right: '0',
+            bottom: '0',
+            pointerEvents: 'none',
+          }}
+        >
+          {renderVideo?.(dem)}
+        </div>
+        <canvas ref={canvasRef} id="canvas" />
+      </div>
       <div>
         <PdfReader fileReaderInfo={fileReaderInfo} updateFileReaderInfo={updateFileReaderInfo} />
       </div>
