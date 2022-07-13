@@ -7,6 +7,8 @@ import useVideoPlayer from './lib/hook';
 const App = () => {
   const ref = useRef();
   const [r, setR] = useState();
+  const [comment, setComment] = useState('');
+
   const [mapp, setMap] = useState(() => {
     const params = new URLSearchParams(location.search);
     const k = params.get('his');
@@ -26,7 +28,7 @@ const App = () => {
     <div className={styles.app}>
       <main>
         <Whiteboard
-          json={mapp[c]}
+          json={mapp[c]?.canvas}
           renderVideo={(d) => {
             console.log(d);
             if (!d) return null;
@@ -48,11 +50,20 @@ const App = () => {
           }}
           aspectRatio={4 / 3}
           onSaveJson={(j) => {
-            setMap((m) => ({ ...m, [ref.current.currentTime]: j }));
+            setMap((m) => ({ ...m, [ref.current.currentTime]: { canvas: j, comment } }));
+            setTimeout(() => {
+              setComment('');
+            }, 0);
           }}
         />
       </main>
       <div id="video-controls" className="controls" data-state="hidden">
+        <textarea
+          onChange={(e) => setComment(e.target.value)}
+          value={comment}
+          cols="30"
+          rows="10"
+        ></textarea>
         <button
           id="playpause"
           type="button"
@@ -76,30 +87,21 @@ const App = () => {
             id="myRange"
           />
         </div>
-        <button id="mute" type="button" data-state="mute">
-          Mute/Unmute
-        </button>
-        <button id="volinc" type="button" data-state="volup">
-          Vol+
-        </button>
-        <button id="voldec" type="button" data-state="voldown">
-          Vol-
-        </button>
-        <button id="fs" type="button" data-state="go-fullscreen">
-          Fullscreen
-        </button>
       </div>
 
-      <button
-        onClick={() => {
-          setC(24);
-          ref.current.currentTime = 24;
-        }}
-      >
-        go to
-      </button>
-
-      <pre>{JSON.stringify(mapp, null, 2)}</pre>
+      {Object.keys(mapp).map((k) => (
+        <div key={k}>
+          <a
+            href={`#${k}`}
+            onClick={() => {
+              setC(k);
+              ref.current.currentTime = k;
+            }}
+          >
+            {k}: {mapp?.[k]?.comment}
+          </a>
+        </div>
+      ))}
     </div>
   );
 };
